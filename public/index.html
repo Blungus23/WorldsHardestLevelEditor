@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.1.9/p5.js"></script>
+    <!-- <link rel="stylesheet" type="text/css" href="/public/style.css"> -->
+    <meta charset="utf-8" />
+    <link rel="stylesheet" type="text/css" href="/public/style.css">
+    <link rel="shortcut icon" type="image" href="/public/favicon(2).ico"/>
+    <title>Level Editor</title>
+  </head>
+  <body>
+    <h2 id="mode">Mode: 1 - Wall</h2>
+    <h5>editor is laggier than actual game as it updates the world each frame sorry</h5>
+    <div>
+      <label for="c1">Color 1:</label>
+      <input type="color" id="c1" name="c1"
+           value="#e9d9fa">
+      <label for="c2">Color 2:</label>
+      <input type="color" id="c2" name="c2"
+           value="#c8c0d1">
+      <label for="fname">Current Speed:</label>
+      <input type="text" value="25" id="fname" name="fname"><br><br>
+    </div><br>
+    <div>
+    <button onclick="getData()">Get Map Data</button>
+    <button onclick="loadData()">Load Map Data</button>
+    <button onclick="deleteObj()">Clear Objects</button>
+    <button onclick="gridSet(0)">Clear Map</button>
+    <button onclick="gridSet(1)">Fill With Walls</button>
+    </div><br>
+    <script src="/public/sketch.js"></script>
+    <div class="dataBase">
+      <form onsubmit="postToDataBase(event)" id="forum1" action='/push'  method="POST">
+          <button id="poster" class="buttonYellow">Post to DataBase</button><br><br>
+          <label>
+            User-Name:
+            <input id="user" name="user" required/>
+          </label><br><br>
+          <label>
+            Project-Name:
+            <input id="name" name="name" required/>
+          </label>
+          <input class = "data" id="data" name="data"/> 
+        </form><br>
+    </div>
+  </body>
+</html>
