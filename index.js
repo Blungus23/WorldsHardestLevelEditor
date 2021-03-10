@@ -36,6 +36,7 @@ app.get('/',(req, res) => {
                 throw err
                 return;
             }
+            res.redirect('https://worldshardestgame.bigboyz.repl.co/');
             res.end();
         });
     });

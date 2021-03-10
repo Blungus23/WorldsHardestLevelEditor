@@ -2,6 +2,7 @@
 
 //grid pattern colors
 let empty1 = "#e9d9fa",empty2 = "#c8c0d1";
+let MAP_POSSIBLE = false;
 
 
 function make2DArray(cols,rows,set){
@@ -14,7 +15,7 @@ function make2DArray(cols,rows,set){
 
 const res = 25;
 const ballSpeed = 1;
-let grid,cols,rows,myElt,id=0,sim=false,curSpeed=1,touching=false,mode=1,balls=[],coins=[];
+let grid,cols,rows,myElt,id=0,sim=false,curSpeed=1,playing=false,touching=false,mode=1,balls=[],coins=[];
 
 function setup() {
   createCanvas(600, 400);
@@ -34,7 +35,8 @@ function gridSet(num){
 }
 
 function draw() {
-  empty1 = document.getElementById("c1").value;
+  if(!playing){
+    empty1 = document.getElementById("c1").value;
   empty2 = document.getElementById("c2").value;
   background(220);
   drawGrid();
@@ -51,6 +53,9 @@ function draw() {
     coin.show();
   }
   curSpeed = document.getElementById("fname").value;
+  }else{
+    handlePlaying();
+  } 
 }
 
 function keyPressed(){
@@ -87,6 +92,7 @@ function getText(num){
     case 7 : return "Marker 2";
     case 8 : return "Marker 3";
     case 9 : return "Marker 4";
+    case 10: return "Play Testing";
   }
 }
 
@@ -147,7 +153,9 @@ function mousePressed(){
       }
     } 
   }
-  
+  if(mouseX>0 && mouseX < width && mouseY>0 && mouseY < height){
+    MAP_POSSIBLE = false;
+  }
 }
 
 function mouseDragged() {
@@ -211,6 +219,7 @@ function loadData(){
 }
 
 function postToDataBase(event){
+  if(MAP_POSSIBLE){
   let valid = true;
   const starts = getSquares(2);
   const ends = getSquares(3);
@@ -232,6 +241,10 @@ function postToDataBase(event){
   const strData = JSON.stringify(data);
   myElt.value = strData;
   }
+  }else{
+    alert('TEST AND PASS YOUR MAP TO POST IT TO THE SERVER');
+    event.preventDefault();
+  }
 }
 
 function getSquares(num){
@@ -246,22 +259,27 @@ function getSquares(num){
   return arr;
 }
 
+function getsingleNeighbors(grid,i,j){
+  try{
+    const spot =  grid[i][j];
+    return spot;
+  }catch{
+    //spot dosnt exist
+    return undefined;
+  }
+}
+
 function getNeighbors(i,j){
-  let arr = []
-    try{
-        arr.push(grid[i-1][j-1])
-        arr.push(grid[i-1][j])
-        arr.push(grid[i-1][j+1])
-        arr.push(grid[i][j-1])
-        arr.push(grid[i][j+1])
-        arr.push(grid[i+1][j-1])
-        arr.push(grid[i+1][j])
-        arr.push(grid[i+1][j+1])
-        return arr;
-    }
-    catch{
-       return [];
-    }
+  let arr = [];
+  arr.push(getsingleNeighbors(grid,i-1,j-1));
+  arr.push(getsingleNeighbors(grid,i-1,j));
+  arr.push(getsingleNeighbors(grid,i-1,j+1));
+  arr.push(getsingleNeighbors(grid,i,j-1));
+  arr.push(getsingleNeighbors(grid,i,j+1));
+  arr.push(getsingleNeighbors(grid,i+1,j-1));
+  arr.push(getsingleNeighbors(grid,i+1,j));
+  arr.push(getsingleNeighbors(grid,i+1,j+1));
+  return arr;
 }
 
 function drawGrid(){
@@ -313,6 +331,7 @@ function Ball(x,y,i,speed,pos=null){
   this.done = false;
   this.plane = "X";
   this.update = () =>{
+    if(this.pos.length>1){
     const next = this.pos[this.ind];
     if(this.plane == "X"){
        if(this.x>next.x){
@@ -344,6 +363,7 @@ function Ball(x,y,i,speed,pos=null){
         this.y = this.pos[0].y
         this.ind = 1;
       }
+    }
     }
   }
   
@@ -410,6 +430,234 @@ function drawWalls(x,y,i,j){
             strokeWeight(3);
             line(x+res,y,x+res,y+res);
             pop()
+          }
+          
+        }
+}
+
+function playTest(){
+  if(getStarts(grid).length>2){
+    playing = !playing;
+  if(playing){
+    let myElt = document.getElementById("playButton").innerHTML = "Stop Playing";
+    myElt = document.getElementById("playButton").style.backgroundColor = "#fc3903";
+  }else{
+    let myElt = document.getElementById("playButton").innerHTML = "Play Test";
+    myElt = document.getElementById("playButton").style.backgroundColor = "aquamarine";
+    resetCoins()
+    firstStart = true;
+  }
+  }
+}
+
+let pg;
+let firstStart = true;
+let p1;
+let exitCoins,playerSpeed = 1.25;
+function handlePlaying(){
+  if(firstStart){
+    pg = createGraphics(600, 400);
+    getImageGrid();
+    firstStart = false;
+    const starts = getStarts(grid);
+    let start = starts[int(random(starts.length))];
+    p1 = new Player(start.x,start.y,"#c40000");
+    exitCoins = coins.length;
+    savedCoins  = [...coins];
+  }
+  background(220);
+  image(pg, 0, 0);
+  for(var ball of balls){
+      ball.show();
+      ball.update();
+      p1.collidesBall(ball);
+    }
+    for(var k =0;k<coins.length;k++){
+      coins[k].show();
+      if(p1.collidesCoin(coins[k])){
+        p1.coins++;
+        coins.splice(k,1);
+      }
+    }
+    p1.show();
+    handelKeyBoard();
+
+}
+
+function resetCoins(){
+  coins = [];
+  for(var coin of savedCoins){
+    coins.push(new Coin(coin.x,coin.y));
+  }
+  
+}
+
+function getStarts(grid){
+  let starts = [];
+  for(var i =0;i<cols;i++){
+    for(var j =0;j<rows;j++){
+      if(grid[i][j] == 2){
+        starts.push({x:i*res,y:j*res});
+      }
+    }
+  }
+  return starts;
+}
+
+function CircleCircle(c1,c2){
+   const d = dist(c1.x,c1.y,c2.x,c2.y);
+   return d<(c1.r+c2.r)/2;
+}
+
+function Player(x,y,col){
+  this.x = x;
+  this.y = y;
+  this.col = col;
+  this.r = 10;
+  this.coins = 0;
+  this.collidesBall = (c) =>{
+    const c2 = {x:c.x+(res/2),y:c.y+(res/2),r:c.r}
+    const c1 = {x:this.x,y:this.y,r:this.r}
+    if(CircleCircle(c1,c2)){
+      const starts = getStarts(grid);
+      let start = starts[int(random(starts.length))];
+      this.x = start.x;
+      this.y = start.y;
+      this.coins = 0;
+      resetCoins();
+    }
+  }
+  this.collidesCoin = (c) =>{
+    const c2 = {x:c.x,y:c.y,r:c.r}
+    const c1 = {x:this.x,y:this.y,r:this.r}
+    return CircleCircle(c1,c2);   
+  }
+  
+  this.collidesWorld = (call) =>{
+    const x = int(this.x/res);
+    const y = int(this.y/res);
+    if(call == "nextR"){
+      let nX = int((this.x+10)/res);
+      return grid[nX][y]
+    }
+    if(call == "nextD"){
+      let nY = int((this.y+10)/res);
+      return grid[x][nY]
+    }
+    return grid[x][y];
+  }
+    
+  this.show = () => {
+    push()
+    fill(this.col);
+    rect(this.x,this.y,10,10); 
+    /* hitBox */
+    // fill("green");
+    // circle(this.x+(this.r/2),this.y+(this.r/2),this.r);
+    pop()
+  }
+}
+
+function handelKeyBoard(){
+  if(keyIsDown(38)){ //Up
+    p1.y -= playerSpeed;
+    if(p1.collidesWorld() == 1){
+      p1.y += playerSpeed;
+    }
+  }
+  if(keyIsDown(40)){//Down
+    p1.y += playerSpeed;
+    if(p1.collidesWorld("nextD") == 1){
+      p1.y -= playerSpeed;
+    }
+  }
+  if(keyIsDown(39)){//Right
+    p1.x += playerSpeed;
+    if(p1.collidesWorld("nextR") == 1){
+      p1.x -= playerSpeed;
+    }
+  }
+  if(keyIsDown(37)){//Left
+    p1.x -= playerSpeed;
+    if(p1.collidesWorld() == 1){
+      p1.x += playerSpeed;
+    }
+  }
+  if(p1.collidesWorld() == 3 && p1.coins >= exitCoins){
+      const starts = getStarts(grid);
+      let start = starts[int(random(starts.length))];
+      p1.x = start.x;
+      p1.y = start.y;
+      p1.coins = 0;
+      resetCoins();
+      MAP_POSSIBLE = true;
+    }
+}
+
+
+
+
+
+
+
+
+function getImageGrid(){
+  for(var i =0; i<cols;i++){
+    for(var j =0;j<rows;j++){
+       const x = i*res;
+       const y = j*res;
+       pg.push()
+      if(grid[i][j] == 0){
+        if((i+j) % 2 == 0){
+          pg.fill(empty1);
+        }else{
+          pg.fill(empty2);
+        }
+      }else{
+        try{
+          pg.fill(colors[grid[i][j]])
+        }catch{
+          
+        }
+        
+      }
+      pg.noStroke();
+      pg.rect(x,y,res,res);
+      if(grid[i][j]==1){
+      drawImageWalls(x,y,i,j);
+      }
+      pg.pop()
+    }
+  }
+}
+
+function drawImageWalls(x,y,i,j){
+    pg.stroke(0)
+        const neigh = getNeighbors(i,j);
+        for(var k =0;k<neigh.length;k++){
+          if(neigh[1] != 1 && neigh[1] != null){
+            pg.push()
+            pg.strokeWeight(2);
+            pg.line(x,y,x,y+res)
+            pg.pop()
+          }
+          if(neigh[3] != 1 && neigh[3] != null){
+            pg.push()
+            pg.strokeWeight(2);
+            pg.line(x,y,x+res,y);
+            pg.pop()
+          }
+          if(neigh[4] != 1 && neigh[4] != null){
+            pg.push()
+            pg.strokeWeight(3);
+            pg.line(x,y+res,x+res,y+res);
+            pg.pop()
+          }
+          if(neigh[6] != 1 && neigh[6] != null){
+            pg.push()
+            pg.strokeWeight(3);
+            pg.line(x+res,y,x+res,y+res);
+            pg.pop()
           }
           
         }
